@@ -63,6 +63,62 @@ describe('KeyPair', () => {
 
       expect(isValid).toBe(false)
     })
+
+    it('应该能够使用公钥验证签名（跨密钥对验证）', () => {
+      // Alice 的密钥对
+      const aliceKeyPair = new KeyPair()
+
+      // 构建交易消息，包含公钥
+      const message = {
+        data: 'Transfer 100 BTC',
+        publicKey: aliceKeyPair.publicKey, // 交易中包含公钥
+      }
+      const messageStr = JSON.stringify(message)
+
+      // Alice 签名
+      const signature = aliceKeyPair.sign(messageStr)
+
+      // 其他人从交易中获取公钥并验证签名
+      const {Signature} = require('../../crypto/signature')
+      const publicKeyFromMessage = message.publicKey // 从交易中获取
+      const isValid = Signature.verify(
+        messageStr,
+        signature,
+        publicKeyFromMessage
+      )
+
+      expect(isValid).toBe(true)
+    })
+
+    it('使用正确的公钥才能验证签名', () => {
+      const alice = new KeyPair()
+      const bob = new KeyPair()
+
+      // Alice 创建消息并签名
+      const message = {
+        content: 'test message',
+        publicKey: alice.publicKey,
+      }
+      const messageStr = JSON.stringify(message)
+      const signature = alice.sign(messageStr)
+
+      const {Signature} = require('../../crypto/signature')
+
+      // 从消息中获取公钥验证 - 应该成功
+      const publicKeyFromMessage = message.publicKey
+      expect(
+        Signature.verify(messageStr, signature, publicKeyFromMessage)
+      ).toBe(true)
+
+      // 如果有人篡改消息中的公钥为 Bob 的公钥 - 验证应该失败
+      const tamperedMessage = {
+        ...message,
+        publicKey: bob.publicKey,
+      }
+      expect(
+        Signature.verify(messageStr, signature, tamperedMessage.publicKey)
+      ).toBe(false)
+    })
   })
 
   describe('isValid', () => {
@@ -114,5 +170,3 @@ describe('KeyPair', () => {
     })
   })
 })
-
-
