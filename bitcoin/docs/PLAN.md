@@ -105,24 +105,27 @@ scriptSig + scriptPubKey 组合执行
 - 提供脚本模式切换开关
 - 完整测试覆盖两种模式
 
-## Milestone 5: 区块链核心 ⛏️
+## Milestone 5: 区块链核心 ⛏️ ✅ 已完成
 
 **目标**: 实现区块链存储和工作量证明挖矿
 
 **交付物**: 
-- `src/merkle/` 目录
-  - `MerkleTree.ts`: Merkle 树构建和验证
-- `src/blockchain/` 目录
-  - `Block.ts`: 区块结构 (前区块哈希、Merkle根、时间戳、难度、nonce)
-  - `ProofOfWork.ts`: 工作量证明算法 (挖矿核心)
-  - `Blockchain.ts`: 区块链管理、难度动态调整、UTXO 集合维护
-  - `Miner.ts`: 矿工类 (打包交易、计算 Coinbase 奖励、执行挖矿)
+- ✅ `src/merkle/` 目录
+  - ✅ `MerkleTree.ts`: Merkle 树构建和验证
+- ✅ `src/blockchain/` 目录
+  - ✅ `Block.ts`: 区块结构 (前区块哈希、Merkle根、时间戳、难度、nonce)
+  - ✅ `ProofOfWork.ts`: 工作量证明算法 (挖矿核心)
+  - ✅ `Blockchain.ts`: 区块链管理、难度动态调整、UTXO 集合维护
+  - ✅ `Miner.ts`: 矿工类 (打包交易、计算 Coinbase 奖励、执行挖矿)
+- ✅ 完整的单元测试覆盖
 
 **挖矿机制**: 
 - 工作量证明 (PoW) 算法
 - 区块奖励: 50 BTC (可配置)
 - 矿工费: 交易输入 - 交易输出的差额
 - 难度调整: 每 10 个区块调整一次，目标出块时间 10 秒
+
+**文章**: `docs/ARTICLE_PART3.md` - 实现一个简单的比特币：Part 3 - 区块链与挖矿
 
 ## Milestone 6: 验证与演示 ✅
 

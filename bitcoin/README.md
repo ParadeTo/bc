@@ -17,9 +17,18 @@
   - 所有权验证
   - 双花检测
   - 余额检查
-- 🚧 **工作量证明**: SHA-256 PoW 共识算法（规划中）
-- 🚧 **Merkle 树**: 高效的交易验证结构（规划中）
-- 🚧 **动态难度调整**: 根据出块时间自动调整（规划中）
+- ✅ **Merkle 树**: 高效的交易验证结构
+- ✅ **区块链核心**: 
+  - 区块结构（区块头 + 交易列表）
+  - 区块链接（通过前区块哈希）
+  - UTXO 集合维护
+  - 区块验证
+- ✅ **工作量证明**: SHA-256 双重哈希 PoW 挖矿
+- ✅ **动态难度调整**: 根据出块时间自动调整难度
+- ✅ **矿工系统**: 
+  - 交易打包（按手续费排序）
+  - 挖矿奖励计算
+  - 工作量证明执行
 
 ## 快速开始
 
@@ -52,32 +61,36 @@ pnpm test
 ```
 bitcoin/
 ├── src/
-│   ├── crypto/              # 密码学工具
-│   │   ├── hash.ts          # SHA-256 哈希
-│   │   └── signature.ts     # ECDSA 签名
-│   ├── wallet/              # 钱包系统
+│   ├── crypto/              # 密码学工具 ✅
+│   │   ├── hash.ts          # SHA-256、RIPEMD-160 哈希
+│   │   └── signature.ts     # ECDSA 签名与验证
+│   ├── wallet/              # 钱包系统 ✅
 │   │   ├── KeyPair.ts       # 密钥对管理
 │   │   └── Wallet.ts        # 钱包功能
 │   ├── transaction/         # 交易系统 ✅
 │   │   ├── TxInput.ts       # 交易输入
 │   │   ├── TxOutput.ts      # 交易输出
-│   │   ├── UTXO.ts          # UTXO 管理
-│   │   ├── Transaction.ts   # 交易结构
+│   │   ├── UTXO.ts          # UTXO 集合管理
+│   │   ├── Transaction.ts   # 交易数据结构
 │   │   ├── TransactionSigner.ts    # 签名和验证
 │   │   └── TransactionBuilder.ts   # 交易构建器
+│   ├── merkle/              # Merkle 树 ✅
+│   │   └── MerkleTree.ts    # Merkle 树构建和验证
+│   ├── blockchain/          # 区块链核心 ✅
+│   │   ├── Block.ts         # 区块结构
+│   │   ├── Blockchain.ts    # 区块链管理
+│   │   ├── ProofOfWork.ts   # 工作量证明
+│   │   └── Miner.ts         # 矿工系统
 │   ├── utils/               # 工具函数
 │   │   └── base58.ts        # Base58 编码
-│   ├── blockchain/          # 区块链核心（规划中）
-│   │   ├── Block.ts         # 区块
-│   │   ├── Blockchain.ts    # 区块链
-│   │   └── ProofOfWork.ts   # 工作量证明
 │   └── examples/            # 示例代码
 │       └── demo.ts          # 完整演示
 └── docs/
     ├── TECH_DESIGN.md       # 技术设计文档
     ├── PLAN.md              # 实现计划
     ├── ARTICLE_PART1.md     # 教程：Part 1 - 基础设施
-    └── ARTICLE_PART2.md     # 教程：Part 2 - 交易系统
+    ├── ARTICLE_PART2.md     # 教程：Part 2 - 交易系统
+    └── ARTICLE_PART3.md     # 教程：Part 3 - 区块链与挖矿
 ```
 
 ## 核心概念
@@ -284,6 +297,98 @@ console.log('多人转账完成')
 console.log('输出数量:', tx2.outputs.length)  // 3个输出：Bob、Charlie、找零
 ```
 
+### 区块链与挖矿
+
+```typescript
+import { Blockchain, Block, Miner } from './blockchain'
+import { Transaction } from './transaction'
+import { Wallet } from './wallet'
+
+// 1. 创建区块链
+const blockchain = new Blockchain({
+  initialDifficulty: 2,
+  blockReward: 50,
+  targetBlockTime: 10,
+  difficultyAdjustmentInterval: 10
+})
+
+// 2. 创建钱包
+const minerWallet = new Wallet()
+const alice = new Wallet()
+const bob = new Wallet()
+
+// 3. 创建创世区块
+const genesisCoinbase = Transaction.createCoinbase(minerWallet.address, 50, 0)
+const genesisBlock = Block.createGenesisBlock(genesisCoinbase)
+blockchain.initializeWithGenesisBlock(genesisBlock)
+
+console.log('创世区块已创建')
+console.log('矿工余额:', blockchain.getUTXOSet().getBalance(minerWallet.address))
+// 输出: 矿工余额: 50
+
+// 4. 创建矿工并挖矿
+const miner = new Miner(minerWallet, blockchain)
+const { block, miningResult } = miner.mineEmptyBlock()
+
+console.log('挖矿成功！')
+console.log('  区块哈希:', miningResult.hash)
+console.log('  Nonce:', miningResult.nonce)
+console.log('  尝试次数:', miningResult.attempts)
+console.log('  用时:', miningResult.duration, 'ms')
+
+// 5. 将区块添加到区块链
+blockchain.addBlock(block)
+console.log('矿工余额:', blockchain.getUTXOSet().getBalance(minerWallet.address))
+// 输出: 矿工余额: 100
+
+// 6. 矿工转账给 Alice
+const utxoSet = blockchain.getUTXOSet()
+const tx = TransactionBuilder.createSimpleTransfer(
+  minerWallet,
+  alice.address,
+  30,
+  utxoSet
+)
+
+// 7. 挖矿打包交易
+const { block: block2 } = miner.mineBlock([tx])
+blockchain.addBlock(block2)
+
+console.log('Alice 余额:', blockchain.getUTXOSet().getBalance(alice.address))
+// 输出: Alice 余额: 30
+
+// 8. 查看区块链状态
+const stats = blockchain.getStats()
+console.log('区块链长度:', stats.length)
+console.log('当前难度:', stats.difficulty)
+console.log('UTXO 数量:', stats.utxoCount)
+
+// 9. 验证区块链
+console.log('区块链有效:', blockchain.isValidChain())
+```
+
+### Merkle 树
+
+```typescript
+import { MerkleTree } from './merkle'
+
+// 创建 Merkle 树
+const transactions = ['tx1', 'tx2', 'tx3', 'tx4']
+const tree = new MerkleTree(transactions)
+
+// 获取 Merkle 根
+const root = tree.getRoot()
+console.log('Merkle 根:', root)
+
+// 生成 Merkle 证明
+const proof = tree.getProof('tx1')
+console.log('Merkle 证明:', proof)
+
+// 验证 Merkle 证明
+const isValid = MerkleTree.verify('tx1', proof, root)
+console.log('证明有效:', isValid)  // true
+```
+
 ### 运行测试
 
 ```bash
@@ -304,6 +409,7 @@ npm test -- --coverage
 - [实现计划](./docs/PLAN.md) - 分阶段的实现路线图
 - [教程 Part 1](./docs/ARTICLE_PART1.md) - 实现一个简单的比特币：基础设施
 - [教程 Part 2](./docs/ARTICLE_PART2.md) - 实现一个简单的比特币：交易系统
+- [教程 Part 3](./docs/ARTICLE_PART3.md) - 实现一个简单的比特币：区块链与挖矿
 - [多方交易支持](./docs/MULTI_PARTY_TRANSACTIONS.md) - 支持多个参与者的交易
 
 ## 实现进度
@@ -314,11 +420,11 @@ npm test -- --coverage
 - ✅ **Milestone 2**: 密码学基础（SHA-256, ECDSA）
 - ✅ **Milestone 3**: 钱包与 UTXO 模型
 - ✅ **Milestone 4**: 交易系统（构建、签名、验证）
+- ✅ **Milestone 5**: 区块链核心（Merkle 树、区块、PoW 挖矿）
 
 ### 规划中 🚧
 
 - 🚧 **Milestone 4.5**: 脚本系统（可选扩展）
-- 🚧 **Milestone 5**: 区块链核心（PoW 挖矿）
 - 🚧 **Milestone 6**: 验证与演示
 
 ## 限制说明
@@ -339,14 +445,17 @@ npm test -- --coverage
 1. **阅读教程文章**
    - [Part 1: 基础设施](./docs/ARTICLE_PART1.md) - 密码学、钱包、UTXO
    - [Part 2: 交易系统](./docs/ARTICLE_PART2.md) - 交易构建、签名、验证
+   - [Part 3: 区块链与挖矿](./docs/ARTICLE_PART3.md) - Merkle 树、区块、工作量证明
 
 2. **理解核心代码**
    - `src/crypto/` - 密码学基础（哈希、签名）
    - `src/wallet/` - 钱包系统（密钥对、地址生成）
    - `src/transaction/` - 交易系统（UTXO、交易构建）
+   - `src/merkle/` - Merkle 树（高效验证）
+   - `src/blockchain/` - 区块链核心（区块、PoW、挖矿）
 
 3. **运行测试用例**
-   - `src/**/__tests__/` - 180+ 测试用例，覆盖所有功能
+   - `src/**/__tests__/` - 220+ 测试用例，覆盖所有功能
 
 4. **阅读技术文档**
    - [技术设计文档](./docs/TECH_DESIGN.md) - 完整的架构设计
