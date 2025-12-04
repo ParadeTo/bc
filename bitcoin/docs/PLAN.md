@@ -127,20 +127,30 @@ scriptSig + scriptPubKey 组合执行
 
 **文章**: `docs/ARTICLE_PART3.md` - 实现一个简单的比特币：Part 3 - 区块链与挖矿
 
-## Milestone 6: 验证与演示 ✅
+## Milestone 6: 验证与演示 ✅ 已完成
 
 **目标**: 完成系统集成和端到端演示
 
 **交付物**:
-- `src/validator/` 目录
-  - `BlockValidator.ts`: 区块完整性验证
-  - `TransactionValidator.ts`: 交易有效性验证
-- `src/examples/demo.ts`: 完整演示脚本
-  - 创建多个钱包
+- ✅ `src/examples/demo.ts`: 完整演示脚本
+  - 创建多个钱包 (Miner, Alice, Bob, Charlie)
   - 生成创世区块
-  - 构建并签名交易
+  - 构建并签名多笔交易
   - 挖矿添加新区块
-  - 验证整条区块链
+  - 验证整条区块链 PoW
+  - 显示余额变化和区块链状态
+- ✅ 验证逻辑 (集成在现有模块中)
+  - `Blockchain.isValidNewBlock()`: 区块完整性验证
+  - `Blockchain.isValidTransaction()`: 交易有效性验证
+  - `ProofOfWork.verify()`: 工作量证明验证
+
+**额外完成** (超出原计划):
+- ✅ `src/server/`: REST API 服务器
+  - Express 后端，提供区块链、钱包、交易、挖矿、Merkle 等 API
+- ✅ `frontend/`: Web 前端界面
+  - React + TypeScript + Tailwind CSS
+  - 区块链浏览器、钱包管理、交易创建、挖矿面板、Merkle 验证器
+  - Merkle 树可视化图解
 
 ## 核心技术要点
 

@@ -29,10 +29,22 @@ export class ProofOfWork {
       block.setNonce(nonce)
       hash = block.hash
 
+      // 每 1000 次打印一次进度
+      if (nonce > 0 && nonce % 1000 === 0) {
+        console.log(
+          `挖矿中... 已尝试 ${nonce} 次, 当前哈希: ${hash.substring(0, 16)}...`
+        )
+      }
+
       if (hash.startsWith(target)) {
         const endTime = Date.now()
         const duration = endTime - startTime
-        const hashRate = Math.floor((nonce / duration) * 1000)
+        const hashRate =
+          duration > 0 ? Math.floor((nonce / duration) * 1000) : nonce
+
+        console.log(
+          `挖矿成功！总尝试次数: ${nonce}, 用时: ${duration}ms, 哈希率: ${hashRate} H/s`
+        )
 
         return {
           nonce,
