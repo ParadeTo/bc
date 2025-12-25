@@ -325,12 +325,12 @@ export default function MerkleVerifier() {
     try {
       setVerifying(true)
       setResult(null)
-
+      
       const res = await merkleAPI.verify({
         blockIndex: selectedBlockIndex,
         txId: selectedTxId,
       })
-
+      
       setResult(res.data)
     } catch (err: any) {
       alert('验证失败: ' + (err.error || '未知错误'))
@@ -378,7 +378,7 @@ export default function MerkleVerifier() {
         <div className="space-y-4">
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
             <h2 className="text-xl font-semibold">选择验证目标</h2>
-
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 选择区块
@@ -434,38 +434,38 @@ export default function MerkleVerifier() {
               <GitBranch className="w-4 h-4" />
               {verifying ? '验证中...' : '验证 Merkle 证明'}
             </button>
-          </div>
+        </div>
 
-          {/* 验证结果 */}
+        {/* 验证结果 */}
           {result && (
-            <div
-              className={`border rounded-lg p-6 ${
-                result.isValid
-                  ? 'bg-green-50 border-green-200'
-                  : 'bg-red-50 border-red-200'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                {result.isValid ? (
-                  <>
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                    <h3 className="text-lg font-semibold text-green-800">
+              <div
+                className={`border rounded-lg p-6 ${
+                  result.isValid
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-red-50 border-red-200'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  {result.isValid ? (
+                    <>
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <h3 className="text-lg font-semibold text-green-800">
                       验证成功 ✓
-                    </h3>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-6 h-6 text-red-600" />
-                    <h3 className="text-lg font-semibold text-red-800">
+                      </h3>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-6 h-6 text-red-600" />
+                      <h3 className="text-lg font-semibold text-red-800">
                       验证失败 ✗
-                    </h3>
-                  </>
-                )}
-              </div>
+                      </h3>
+                    </>
+                  )}
+                </div>
 
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="text-gray-600">区块索引:</span>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-gray-600">区块索引:</span>
                   <span className="ml-2 font-bold">#{result.blockIndex}</span>
                 </div>
                 <div>
@@ -473,15 +473,15 @@ export default function MerkleVerifier() {
                   <span className="ml-2 font-bold">
                     {result.proof.length} 步
                   </span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Merkle Root:</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Merkle Root:</span>
                   <div className="font-mono text-xs mt-1 break-all bg-white/50 p-2 rounded">
-                    {result.merkleRoot}
+                      {result.merkleRoot}
                   </div>
                 </div>
               </div>
-            </div>
+                      </div>
           )}
 
           {/* 计算过程可视化 */}
@@ -492,7 +492,7 @@ export default function MerkleVerifier() {
               merkleRoot={result.merkleRoot}
             />
           )}
-        </div>
+                      </div>
 
         {/* 右侧：树形可视化 */}
         <div className="space-y-4">

@@ -55,55 +55,43 @@
 
 **文章**: `docs/ARTICLE_PART2.md` - 实现一个简单的比特币：Part 2 - 交易系统
 
-## Milestone 4.5: 脚本系统 📜 (可选扩展)
+## Milestone 4.5: 脚本系统 📜 ✅ 已完成
 
 **目标**: 实现比特币脚本语言，使交易验证更灵活
 
 **交付物**: `src/script/` 目录
-- `Script.ts`: 脚本执行引擎
-- `OpCodes.ts`: 操作码定义和实现
-  - 栈操作: `OP_DUP`, `OP_DROP`, `OP_SWAP` 等
-  - 加密操作: `OP_HASH160`, `OP_SHA256`, `OP_CHECKSIG` 等
+- ✅ `OpCodes.ts`: 操作码定义和实现
+  - 栈操作: `OP_DUP`, `OP_DROP`, `OP_SWAP`, `OP_ROT` 等
+  - 加密操作: `OP_HASH160`, `OP_SHA256`, `OP_CHECKSIG`, `OP_CHECKMULTISIG` 等
   - 逻辑操作: `OP_EQUAL`, `OP_EQUALVERIFY`, `OP_VERIFY` 等
+  - 算术操作: `OP_ADD`, `OP_SUB`, `OP_LESSTHAN` 等
   - 数据操作: `OP_PUSHDATA`, `OP_0` - `OP_16` 等
-- `Stack.ts`: 脚本执行栈
-- `ScriptBuilder.ts`: 脚本构建器
-  - `buildP2PKH()`: 构建 P2PKH 锁定/解锁脚本
-  - `buildP2SH()`: 构建 P2SH 锁定/解锁脚本
-  - `buildMultiSig()`: 构建多签脚本
-- 更新 `TxInput.ts`: 使用 `scriptSig` 替代直接存储签名
-- 更新 `TxOutput.ts`: 使用 `scriptPubKey` 替代直接存储地址
+- ✅ `Stack.ts`: 脚本执行栈
+- ✅ `Script.ts`: 脚本执行引擎
+- ✅ `ScriptBuilder.ts`: 脚本构建器
+  - `buildP2PKHLockingScript()` / `buildP2PKHUnlockingScript()`: P2PKH 脚本
+  - `buildP2SHLockingScript()` / `buildP2SHUnlockingScript()`: P2SH 脚本
+  - `buildMultiSigScript()` / `buildMultiSigUnlockingScript()`: 多签脚本
+  - `buildP2SHMultiSig()`: P2SH 封装的多签
+  - `buildOpReturnScript()`: OP_RETURN 数据存储脚本
+- ✅ 更新 `TxInput.ts`: 支持 `scriptSig` 字段（向后兼容）
+- ✅ 更新 `TxOutput.ts`: 支持 `scriptPubKey` 字段（向后兼容）
+- ✅ 完整单元测试覆盖 (26 个测试用例)
 
-**脚本类型**:
-1. **P2PKH (Pay-to-Public-Key-Hash)**:
-   - 锁定脚本: `OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG`
-   - 解锁脚本: `<signature> <publicKey>`
-
-2. **P2SH (Pay-to-Script-Hash)**:
-   - 锁定脚本: `OP_HASH160 <scriptHash> OP_EQUAL`
-   - 解锁脚本: `<data> <redeemScript>`
-
-3. **Multi-Signature**:
-   - 脚本: `<m> <pubKey1> <pubKey2> ... <pubKeyN> <n> OP_CHECKMULTISIG`
-   - 例如 2-of-3 多签: `2 <pubKey1> <pubKey2> <pubKey3> 3 OP_CHECKMULTISIG`
-
-**验证流程**:
-```
-scriptSig + scriptPubKey 组合执行
-→ 栈式执行各操作码
-→ 最终栈顶为 true 则验证通过
-```
+**支持的脚本类型**:
+1. ✅ **P2PKH (Pay-to-Public-Key-Hash)**: 最常见的交易类型
+2. ✅ **P2SH (Pay-to-Script-Hash)**: 支持复杂脚本
+3. ✅ **Multi-Signature**: m-of-n 多重签名
+4. ✅ **P2PK (Pay-to-Public-Key)**: 早期交易类型
+5. ✅ **OP_RETURN**: 数据存储脚本
 
 **技术要点**:
 - 基于栈的虚拟机
-- 操作码安全检查（防止无限循环、栈溢出）
-- 脚本大小限制（10,000 字节）
-- 操作数栈深度限制（1,000 个元素）
+- 操作码安全检查（最大 201 个操作）
+- 栈深度限制（1,000 个元素）
+- 支持脚本类型自动识别
 
-**兼容性**:
-- 保留简化版接口（直接签名/公钥）用于向后兼容
-- 提供脚本模式切换开关
-- 完整测试覆盖两种模式
+**文章**: `docs/ARTICLE_PART4.md` - 实现一个简单的比特币：Part 4 - 脚本系统
 
 ## Milestone 5: 区块链核心 ⛏️ ✅ 已完成
 
@@ -160,4 +148,5 @@ scriptSig + scriptPubKey 组合执行
 - **数字签名**: 使用 ECDSA 保证交易不可伪造
 - **挖矿激励**: Coinbase 交易创造新币，矿工费激励打包交易
 - **经济模型**: 区块奖励 + 矿工费 = 矿工收益
+- **脚本系统**: 基于栈的脚本语言，支持 P2PKH、P2SH、多签等交易类型
 
