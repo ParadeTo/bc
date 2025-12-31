@@ -115,7 +115,7 @@ export class Transaction {
 
 ### 3.2 交易 ID 的计算
 
-交易 ID 是交易内容的哈希值，它唯一标识一笔交易。重要的是，交易 ID 的计算不应该包含签名，因为签名本身是对交易内容的签名。如果把签名包含在内，就会形成循环依赖。
+交易 ID 是交易内容的哈希值，它唯一标识一笔交易。重要的是，交易 ID 的计算不应该包含签名，因为签名本身是对交易内容的 hash。如果把签名包含在内，就会形成循环依赖。
 
 ```typescript
 private calculateId(): string {
@@ -139,7 +139,7 @@ getContentForSigning(): string {
 }
 ```
 
-这个设计很巧妙。`getContentForSigning()` 方法返回的内容：
+`getContentForSigning()` 方法返回的内容：
 - 包含输入的引用信息（txId 和 outputIndex）
 - 不包含签名和公钥
 - 包含所有输出和时间戳
@@ -308,7 +308,7 @@ if (addressFromPublicKey !== utxo.address) {
 }
 ```
 
-这一步确保签名者真正拥有这个 UTXO。即使 Bob 能创建有效的签名，如果他的公钥对应的地址不是 UTXO 的所有者，验证也会失败。
+只有两层验证都通过，交易才有效。即使 Bob 能创建有效的签名（第一层通过），如果他的公钥对应的地址不是 UTXO 的所有者，第二层验证就会失败。
 
 让我们通过一个攻击场景来理解这两层防护的重要性：
 
@@ -503,93 +503,7 @@ Alice 的 UTXO：
 - 通常能选择最少数量的 UTXO
 - 减少交易大小（更少的输入意味着更小的交易体积）
 
-### 5.3 找零计算
-
-找零是交易构建中的重要环节。由于 UTXO 是不可分割的，我们通常需要创建一个输出将多余的金额返还给自己。
-
-```typescript
-build(): Transaction {
-  // 计算需要的总金额
-  const totalOutput = this.recipients.reduce(
-    (sum, recipient) => sum + recipient.amount,
-    0
-  )
-
-  // 选择 UTXO
-  const selectedUTXOs = this.selectUTXOs(senderUTXOs, totalOutput)
-
-  // 计算输入总额
-  const totalInput = selectedUTXOs.reduce(
-    (sum, utxo) => sum + utxo.output.amount,
-    0
-  )
-
-  // 构建输入
-  const inputs = selectedUTXOs.map(
-    utxo => new TxInput(utxo.txId, utxo.outputIndex)
-  )
-
-  // 构建输出
-  const outputs = this.recipients.map(
-    recipient => new TxOutput(recipient.amount, recipient.address)
-  )
-
-  // 计算找零
-  const change = totalInput - totalOutput
-
-  // 如果有找零，添加找零输出
-  if (change > 0) {
-    const changeAddr = this.changeAddress || this.fromWallet.address
-    outputs.push(new TxOutput(change, changeAddr))
-  }
-
-  return new Transaction(inputs, outputs)
-}
-```
-
-找零处理的几种情况：
-
-**情况 1：需要找零**
-
-```
-输入：100 BTC
-输出：60 BTC 给 Bob
-找零：40 BTC
-
-最终输出：
-  - 60 BTC → Bob
-  - 40 BTC → Alice (找零)
-```
-
-**情况 2：刚好用完（极少见）**
-
-```
-输入：60 BTC
-输出：60 BTC 给 Bob
-找零：0 BTC
-
-最终输出：
-  - 60 BTC → Bob
-  (无找零输出)
-```
-
-**情况 3：多个接收者**
-
-```
-输入：150 BTC
-输出：
-  - 60 BTC 给 Bob
-  - 40 BTC 给 Charlie
-  总计：100 BTC
-找零：50 BTC
-
-最终输出：
-  - 60 BTC → Bob
-  - 40 BTC → Charlie
-  - 50 BTC → Alice (找零)
-```
-
-### 5.4 完整的构建流程
+### 5.3 完整流程
 
 让我们通过一个完整的例子理解整个流程：
 
@@ -678,100 +592,11 @@ input.publicKey = alice_publicKey
 - Alice: tx2:0 (50) + tx3:0 (25) + tx4:1 (40) = **115 BTC**
 - Bob: tx4:0 (60) = **60 BTC**
 
-## 六、实际应用场景
-
-让我们通过几个实际场景来看看交易系统是如何工作的。
-
-### 场景 1：简单转账
-
-```typescript
-// Alice 给 Bob 转账 50 BTC
-const tx = TransactionBuilder.createSimpleTransfer(
-  aliceWallet,
-  bobWallet.address,
-  50,
-  utxoSet
-)
-
-console.log(`交易 ID: ${tx.id}`)
-console.log(`输入数量: ${tx.inputs.length}`)
-console.log(`输出数量: ${tx.outputs.length}`)
-```
-
-### 场景 2：批量转账
-
-```typescript
-// Alice 同时给多个人转账
-const tx = new TransactionBuilder(utxoSet)
-  .from(aliceWallet)
-  .to(bobWallet.address, 30)
-  .to(charlieWallet.address, 20)
-  .to(davidWallet.address, 15)
-  .buildAndSign()
-
-// 这笔交易有 1 个输入（或多个），4 个输出：
-// - 30 BTC 给 Bob
-// - 20 BTC 给 Charlie
-// - 15 BTC 给 David
-// - 找零给 Alice
-```
-
-### 场景 3：余额不足的处理
-
-```typescript
-try {
-  const tx = new TransactionBuilder(utxoSet)
-    .from(aliceWallet)
-    .to(bobWallet.address, 1000)  // Alice 没有这么多钱
-    .build()
-} catch (error) {
-  console.error(error.message)
-  // 输出：余额不足。需要: 1000, 可用: 175
-}
-```
-
-### 场景 4：交易验证
-
-```typescript
-// 创建交易
-const tx = new TransactionBuilder(utxoSet)
-  .from(aliceWallet)
-  .to(bobWallet.address, 50)
-  .buildAndSign()
-
-// 准备 UTXO 映射用于验证
-const utxoMap = new Map()
-for (const input of tx.inputs) {
-  const utxo = utxoSet.get(input.txId, input.outputIndex)
-  if (utxo) {
-    utxoMap.set(`${input.txId}:${input.outputIndex}`, {
-      amount: utxo.amount,
-      address: utxo.address,
-    })
-  }
-}
-
-// 验证交易
-const isValid = TransactionSigner.verifyTransaction(tx, utxoMap)
-
-if (isValid) {
-  console.log('交易验证通过')
-  // 可以广播到网络
-} else {
-  console.log('交易验证失败')
-  // 拒绝这笔交易
-}
-```
-
-## 七、总结
+## 六、总结
 
 在这篇文章中，我们实现了比特币的交易系统。我们学习了如何构建交易，包括选择 UTXO、计算找零和生成交易 ID。我们探讨了交易签名的两层验证机制：验证签名本身的有效性，以及验证签名者是否真正拥有被引用的 UTXO。我们还实现了 TransactionBuilder，它封装了 UTXO 选择和找零计算的复杂性，提供了简洁的链式 API。
 
 这些组件构成了比特币价值转移的核心。有了它们，我们可以创建交易、签名交易、验证交易。Transaction 类管理交易的数据结构，TransactionSigner 负责安全性，TransactionBuilder 提供易用性。三个类各司其职，共同构建了一个健壮的交易系统。
-
-我们的实现是简化的。真实的比特币使用更复杂的 UTXO 选择算法，根据交易字节大小动态计算手续费，并使用脚本语言来定义花费条件。但我们保留了最核心的概念：UTXO 模型、数字签名验证、找零机制和 Coinbase 交易。这些足以让你理解比特币是如何实现安全、去中心化的价值转移的。
-
-比特币的设计是优雅的。它用贪心算法解决 UTXO 选择这个 NP 完全问题，用两层验证机制防止交易伪造和 UTXO 盗用，用链式 API 让复杂的交易构建变得简单。通过自己动手实现这些组件，我们不仅理解了比特币的工作原理，也体会到了它设计的精妙之处。
 
 
 
