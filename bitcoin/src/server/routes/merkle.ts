@@ -1,6 +1,7 @@
 import {Router, Request, Response} from 'express'
 import ServerState from '../state'
 import {MerkleTree} from '../../merkle'
+import {Hash} from '../../crypto'
 
 const router = Router()
 const state = ServerState.getInstance()
@@ -54,18 +55,51 @@ router.post('/merkle/verify', (req: Request, res: Response) => {
     // 验证证明
     const isValid = MerkleTree.verify(txId, proof, block.merkleRoot)
     
+    // 获取完整的树结构用于可视化
+    const rootNode = merkleTree.getRootNode()
+    
+    // 序列化树节点
+    function serializeNode(node: any): any {
+      if (!node) return null
+      return {
+        hash: node.hash,
+        left: serializeNode(node.left),
+        right: serializeNode(node.right),
+      }
+    }
+    
+    // 计算目标交易的叶子哈希
+    const targetLeafHash = Hash.sha256(txId)
+    
+    // 收集验证路径上的所有哈希（用于高亮）
+    const proofPath = new Set<string>()
+    proofPath.add(targetLeafHash)
+    let currentHash = targetLeafHash
+    for (const p of proof) {
+      proofPath.add(p.hash)
+      if (p.position === 'left') {
+        currentHash = Hash.sha256(p.hash + currentHash)
+      } else {
+        currentHash = Hash.sha256(currentHash + p.hash)
+      }
+      proofPath.add(currentHash)
+    }
+    
     res.json({
       success: true,
       data: {
         blockIndex,
         blockHash: block.hash,
         txId,
+        targetLeafHash,
         merkleRoot: block.merkleRoot,
         proof: proof.map((p) => ({
           hash: p.hash,
           position: p.position,
         })),
+        proofPath: Array.from(proofPath),
         isValid,
+        tree: serializeNode(rootNode),
       },
     })
   } catch (error: any) {

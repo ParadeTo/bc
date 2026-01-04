@@ -78,13 +78,20 @@ export class MerkleTree {
   }
 
   /**
-   * 获取 Merkle 根
+   * 获取 Merkle 根哈希
    */
   getRoot(): string {
     if (!this.root) {
       throw new Error('Merkle 树未构建')
     }
     return this.root.hash
+  }
+
+  /**
+   * 获取完整的树节点结构
+   */
+  getRootNode(): MerkleNode | null {
+    return this.root
   }
 
   /**
